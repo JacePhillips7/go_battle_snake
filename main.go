@@ -89,9 +89,29 @@ func move(state GameState) BattlesnakeMoveResponse {
 		isMoveSafe["down"] = false
 	}
 
-	// TODO: Step 2 - Prevent your Battlesnake from colliding with itself
-	// mybody := state.You.Body
-
+	//prevent collision with self
+	dangerSpots := make(map[Coord]bool, 0)
+	//add myself as a danger to society
+	mybody := state.You.Body
+	for _, v := range mybody {
+		dangerSpots[v] = true
+	}
+	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}
+	downCord := Coord{X: myHead.X, Y: myHead.Y - 1}
+	leftCord := Coord{X: myHead.X - 1, Y: myHead.Y}
+	rightCord := Coord{X: myHead.X + 1, Y: myHead.Y}
+	if dangerSpots[upCord] {
+		isMoveSafe["up"] = false
+	}
+	if dangerSpots[downCord] {
+		isMoveSafe["down"] = false
+	}
+	if dangerSpots[leftCord] {
+		isMoveSafe["left"] = false
+	}
+	if dangerSpots[rightCord] {
+		isMoveSafe["right"] = false
+	}
 	// TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
 	// opponents := state.Board.Snakes
 

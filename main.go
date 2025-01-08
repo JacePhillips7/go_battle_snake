@@ -96,6 +96,13 @@ func move(state GameState) BattlesnakeMoveResponse {
 	for _, v := range mybody {
 		dangerSpots[v] = true
 	}
+	//add all enemy snakes as a danger
+	opponents := state.Board.Snakes
+	for _, o := range opponents {
+		for _, b := range o.Body {
+			dangerSpots[b] = true
+		}
+	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}
 	downCord := Coord{X: myHead.X, Y: myHead.Y - 1}
 	leftCord := Coord{X: myHead.X - 1, Y: myHead.Y}
@@ -112,8 +119,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 	if dangerSpots[rightCord] {
 		isMoveSafe["right"] = false
 	}
-	// TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
-	// opponents := state.Board.Snakes
 
 	// Are there any safe moves left?
 	safeMoves := []string{}

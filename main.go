@@ -57,7 +57,7 @@ func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bo
 		return runningValue
 	}
 	if reward[move] {
-		runningValue += (100 + layers)
+		runningValue += 100 + (layers * layers)
 	}
 
 	layers--
@@ -66,7 +66,7 @@ func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bo
 	left := Coord{X: move.X - 1, Y: move.Y}
 	right := Coord{X: move.X + 1, Y: move.Y}
 
-	danger[move] = true
+	// danger[move] = true
 
 	return runningValue + rankMove(up, layers, danger, reward, height, width, head) +
 		rankMove(down, layers, danger, reward, height, width, head) +

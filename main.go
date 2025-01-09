@@ -53,18 +53,13 @@ func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bo
 	}
 	runningValue := layers
 
-	if reward[move] {
-		distance := int(Abs(int64(move.X)-int64(head.X)) + Abs(int64(move.Y)-int64(head.Y)))
-		runningValue += 100
-
-		if distance > runningValue {
-			runningValue = layers
-		}
-	}
-
-	if layers == 0 {
+	if layers <= 1 {
 		return runningValue
 	}
+	if reward[move] {
+		runningValue += (100 + layers)
+	}
+
 	layers--
 	up := Coord{X: move.X, Y: move.Y + 1}
 	down := Coord{X: move.X, Y: move.Y - 1}
@@ -145,7 +140,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 	dangerSpots := make(map[Coord]bool, 0)
 	//add all enemy snakes
 	opponents := state.Board.Snakes
-	for _, o := range opponents {
+	for _, o := range opponents { /*  */
 		for _, b := range o.Body {
 			dangerSpots[b] = true
 		}
@@ -194,6 +189,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 		return BattlesnakeMoveResponse{Move: "down"}
 	}
 
+	if len(safeMoves) == 1 {
+		log.Printf("MOVE %s: Only 1 option to move\n", safeMoves[0])
+		return BattlesnakeMoveResponse{Move: safeMoves[0]}
+	}
 	nextMove := safeMoves[0]
 	moveValue := 0
 	layers := 10
@@ -210,7 +209,11 @@ func move(state GameState) BattlesnakeMoveResponse {
 		case "right":
 			runningCord = rightCord
 		}
-		rank = rankMove(runningCord, layers, dangerSpots, rewardMap, boardHeight, boardWidth, myHead)
+		copyDanger := make(map[Coord]bool)
+		for key, value := range dangerSpots {
+			copyDanger[key] = value
+		}
+		rank = rankMove(runningCord, layers, copyDanger, rewardMap, boardHeight, boardWidth, myHead)
 		log.Printf("%s Scored: %d\n", move, rank)
 		if rank > moveValue {
 			nextMove = move

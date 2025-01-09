@@ -51,14 +51,14 @@ func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bo
 	if move.Y >= height || move.Y < 0 {
 		return 0
 	}
-	runningValue := 1
+	runningValue := layers
 
 	if reward[move] {
 		distance := int(Abs(int64(move.X)-int64(head.X)) + Abs(int64(move.Y)-int64(head.Y)))
 		runningValue += 100
 
 		if distance > runningValue {
-			runningValue = 1
+			runningValue = layers
 		}
 	}
 
@@ -143,16 +143,18 @@ func move(state GameState) BattlesnakeMoveResponse {
 
 	//prevent collision with self
 	dangerSpots := make(map[Coord]bool, 0)
-	//add myself as a danger to society
-	mybody := state.You.Body
-	for _, v := range mybody {
-		dangerSpots[v] = true
-	}
-	//add all enemy snakes as a danger
+	//add all enemy snakes
 	opponents := state.Board.Snakes
 	for _, o := range opponents {
 		for _, b := range o.Body {
 			dangerSpots[b] = true
+		}
+		dangerSpots[o.Head] = true
+		if o.Head != myHead {
+			head_cords := genNextMoves(o.Head)
+			for _, h := range head_cords {
+				dangerSpots[h] = true
+			}
 		}
 	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}

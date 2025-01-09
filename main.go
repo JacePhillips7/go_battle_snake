@@ -86,11 +86,12 @@ func Abs(x int64) int64 {
 }
 
 func genNextMoves(c Coord) []Coord {
-	moves := []Coord{}
-	moves = append(moves, Coord{X: c.X + 1, Y: c.Y})
-	moves = append(moves, Coord{X: c.X - 1, Y: c.Y})
-	moves = append(moves, Coord{X: c.X, Y: c.Y + 1})
-	moves = append(moves, Coord{X: c.X, Y: c.Y - 1})
+	moves := []Coord{
+		{X: c.X + 1, Y: c.Y},
+		{X: c.X - 1, Y: c.Y},
+		{X: c.X, Y: c.Y + 1},
+		{X: c.X, Y: c.Y - 1},
+	}
 	return moves
 }
 

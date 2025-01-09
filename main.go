@@ -14,7 +14,6 @@ package main
 
 import (
 	"log"
-	"math/rand"
 )
 
 // info is called when you create your Battlesnake on play.battlesnake.com
@@ -40,6 +39,50 @@ func start(state GameState) {
 // end is called when your Battlesnake finishes a game
 func end(state GameState) {
 	log.Printf("GAME OVER\n\n")
+}
+
+func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bool, height int, width int, head Coord) int {
+	if danger[move] {
+		return 0
+	}
+	if move.X >= width || move.X < 0 {
+		return 0
+	}
+	if move.Y >= height || move.Y < 0 {
+		return 0
+	}
+	runningValue := 1
+
+	if reward[move] {
+		distance := int(Abs(int64(move.X)-int64(head.X)) + Abs(int64(move.Y)-int64(head.Y)))
+		runningValue += 100
+
+		if distance > runningValue {
+			runningValue = 1
+		}
+	}
+
+	if layers == 0 {
+		return runningValue
+	}
+	layers--
+	up := Coord{X: move.X, Y: move.Y + 1}
+	down := Coord{X: move.X, Y: move.Y - 1}
+	left := Coord{X: move.X - 1, Y: move.Y}
+	right := Coord{X: move.X + 1, Y: move.Y}
+
+	danger[move] = true
+
+	return runningValue + rankMove(up, layers, danger, reward, height, width, head) +
+		rankMove(down, layers, danger, reward, height, width, head) +
+		rankMove(left, layers, danger, reward, height, width, head) +
+		rankMove(right, layers, danger, reward, height, width, head)
+}
+func Abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // move is called on every turn and returns your next move
@@ -119,6 +162,13 @@ func move(state GameState) BattlesnakeMoveResponse {
 		isMoveSafe["right"] = false
 	}
 
+	rewardMap := make(map[Coord]bool, 0)
+
+	//add food to rewards
+	for _, f := range state.Board.Food {
+		rewardMap[f] = true
+	}
+
 	// Are there any safe moves left?
 	safeMoves := []string{}
 	for move, isSafe := range isMoveSafe {
@@ -132,13 +182,32 @@ func move(state GameState) BattlesnakeMoveResponse {
 		return BattlesnakeMoveResponse{Move: "down"}
 	}
 
-	// Choose a random move from the safe ones
-	nextMove := safeMoves[rand.Intn(len(safeMoves))]
+	nextMove := safeMoves[0]
+	moveValue := 0
+	layers := 10
+	for _, move := range safeMoves {
+		rank := 0
+		var runningCord Coord
+		switch move {
+		case "down":
+			runningCord = downCord
+		case "up":
+			runningCord = upCord
+		case "left":
+			runningCord = leftCord
+		case "right":
+			runningCord = rightCord
+		}
+		rank = rankMove(runningCord, layers, dangerSpots, rewardMap, boardHeight, boardWidth, myHead)
+		log.Printf("%s Scored: %d\n", move, rank)
+		if rank > moveValue {
+			nextMove = move
+			moveValue = rank
+		}
 
-	// TODO: Step 4 - Move towards food instead of random, to regain health and survive longer
-	// food := state.Board.Food
+	}
 
-	log.Printf("MOVE %d: %s\n", state.Turn, nextMove)
+	log.Printf("MOVE %d: %s SCORE: %d\n", state.Turn, nextMove, moveValue)
 	return BattlesnakeMoveResponse{Move: nextMove}
 }
 

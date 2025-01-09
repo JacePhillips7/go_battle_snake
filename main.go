@@ -154,10 +154,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 		for _, b := range o.Body {
 			dangerSpots[b] = true
 		}
-		//add all heads potential next move
-		for _, h := range genNextMoves(o.Head) {
-			dangerSpots[h] = true
-		}
 	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}
 	downCord := Coord{X: myHead.X, Y: myHead.Y - 1}

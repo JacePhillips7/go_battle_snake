@@ -85,6 +85,15 @@ func Abs(x int64) int64 {
 	return x
 }
 
+func genNextMoves(c Coord) []Coord {
+	moves := []Coord{}
+	moves = append(moves, Coord{X: c.X + 1, Y: c.Y})
+	moves = append(moves, Coord{X: c.X - 1, Y: c.Y})
+	moves = append(moves, Coord{X: c.X, Y: c.Y + 1})
+	moves = append(moves, Coord{X: c.X, Y: c.Y - 1})
+	return moves
+}
+
 // move is called on every turn and returns your next move
 // Valid moves are "up", "down", "left", or "right"
 // See https://docs.battlesnake.com/api/example-move for available data
@@ -143,6 +152,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 	for _, o := range opponents {
 		for _, b := range o.Body {
 			dangerSpots[b] = true
+		}
+		//add all heads potential next move
+		for _, h := range genNextMoves(o.Head) {
+			dangerSpots[h] = true
 		}
 	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}

@@ -180,11 +180,13 @@ func move(state GameState) BattlesnakeMoveResponse {
 		rankMap[key] = -1
 	}
 	//give spots value by distance from head
-	calcMapFromDistance(myHead, rankMap)
+	calcMapFromDistance(myHead, rankMap, 1)
 	nearFood := nearestFood(myHead, state.Board)
 	if nearFood.X != -1 && nearFood.Y != -1 {
-		calcMapFromDistance(nearFood, rankMap)
+		calcMapFromDistance(nearFood, rankMap, 2)
 	}
+	//now we need to have better option select
+	weightedPaths(rankMap, state.Board)
 	for _, move := range safeMoves {
 		rank := 0
 		var runningCord Coord
@@ -210,21 +212,38 @@ func move(state GameState) BattlesnakeMoveResponse {
 	log.Printf("MOVE %d: %s SCORE: %d\n", state.Turn, nextMove, moveValue)
 	return BattlesnakeMoveResponse{Move: nextMove}
 }
-
-func calcMapFromDistance(cor Coord, m map[Coord]int) {
+func weightedPaths(m map[Coord]int, board Board) {
+	for coord, value := range m {
+		moves := genNextMoves(coord)
+		v := value
+		if m[coord] == -1 {
+			continue
+		}
+		for _, move := range moves {
+			if move.X < 0 || move.X > board.Width || move.Y < 0 || move.Y > board.Height {
+				continue
+			}
+			if m[coord] == -1 {
+				continue
+			}
+			v += m[coord]
+		}
+		m[coord] = v
+	}
+}
+func calcMapFromDistance(cor Coord, m map[Coord]int, weight int) {
 	for c, v := range m {
 		if v == -1 { //point is dead so we don't evaluate it
 			continue
 		}
 		dis := calcDistance(c, cor)
-		value := 20 - dis
+		value := 3 - dis
 		if value < 0 {
 			value = 0
 		}
-		m[c] = v + value
+		m[c] = v + value*weight
 	}
 }
-
 func nearestFood(head Coord, board Board) Coord {
 	food := board.Food
 	if len(food) == 0 {

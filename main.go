@@ -163,7 +163,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 		log.Printf("MOVE %s: Only 1 option to move\n", safeMoves[0])
 		return BattlesnakeMoveResponse{Move: safeMoves[0]}
 	}
-	nextMove := safeMoves[0]
 	moveValue := 0
 	moveSafeLevel := 0
 	// this is where we make a maps of all squares and rank them by what they are worth
@@ -217,7 +216,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		WMoves = append(WMoves, calculated)
 	}
 	bestMove := chooseMove(WMoves, state.You.Length)
-	nextMove = bestMove.Move
+	nextMove := bestMove.Move
 	moveValue = bestMove.Rank
 	moveSafeLevel = bestMove.Safe
 	log.Printf("MOVE %d: %s SCORE: %d SAFE: %d\n", state.Turn, nextMove, moveValue, moveSafeLevel)

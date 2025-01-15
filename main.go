@@ -185,8 +185,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 	if nearFood.X != -1 && nearFood.Y != -1 {
 		calcMapFromDistance(nearFood, rankMap, 2)
 	}
-	//now we need to have better option select
-	weightedPaths(rankMap, state.Board)
 	for _, move := range safeMoves {
 		rank := 0
 		var runningCord Coord
@@ -211,25 +209,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 
 	log.Printf("MOVE %d: %s SCORE: %d\n", state.Turn, nextMove, moveValue)
 	return BattlesnakeMoveResponse{Move: nextMove}
-}
-func weightedPaths(m map[Coord]int, board Board) {
-	for coord, value := range m {
-		moves := genNextMoves(coord)
-		v := value
-		if m[coord] == -1 {
-			continue
-		}
-		for _, move := range moves {
-			if move.X < 0 || move.X > board.Width || move.Y < 0 || move.Y > board.Height {
-				continue
-			}
-			if m[coord] == -1 {
-				continue
-			}
-			v += m[coord]
-		}
-		m[coord] = v
-	}
 }
 func calcMapFromDistance(cor Coord, m map[Coord]int, weight int) {
 	for c, v := range m {

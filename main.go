@@ -14,6 +14,7 @@ package main
 
 import (
 	"log"
+	"math"
 )
 
 // info is called when you create your Battlesnake on play.battlesnake.com
@@ -165,12 +166,25 @@ func move(state GameState) BattlesnakeMoveResponse {
 	moveValue := 0
 	// this is where we make a maps of all squares and rank them by what they are worth
 	rankMap := make(map[Coord]int)
+	for y := 0; y < boardHeight; y++ {
+		for x := 0; x < boardWidth; x++ {
+			boardCoord := Coord{
+				X: x, Y: y,
+			}
+			rankMap[boardCoord] = 0
+		}
+
+	}
 	// we will rank all danger spots as a 0
 	for key := range dangerSpots {
 		rankMap[key] = -1
 	}
 	//give spots value by distance from head
-	calcMapFromDistance(myHead, &rankMap)
+	calcMapFromDistance(myHead, rankMap)
+	nearFood := nearestFood(myHead, state.Board)
+	if nearFood.X != -1 && nearFood.Y != -1 {
+		calcMapFromDistance(nearFood, rankMap)
+	}
 	for _, move := range safeMoves {
 		rank := 0
 		var runningCord Coord
@@ -197,23 +211,42 @@ func move(state GameState) BattlesnakeMoveResponse {
 	return BattlesnakeMoveResponse{Move: nextMove}
 }
 
-func calcMapFromDistance(cor Coord, m *map[Coord]int) {
-	for c, v := range *m {
+func calcMapFromDistance(cor Coord, m map[Coord]int) {
+	for c, v := range m {
 		if v == -1 { //point is dead so we don't evaluate it
 			continue
 		}
 		dis := calcDistance(c, cor)
-		value := 10 - dis
+		value := 20 - dis
 		if value < 0 {
 			value = 0
 		}
-		v += value
+		m[c] = v + value
 	}
 }
+
+func nearestFood(head Coord, board Board) Coord {
+	food := board.Food
+	if len(food) == 0 {
+		return Coord{X: -1, Y: -1}
+	}
+	dis := board.Width + board.Height
+	closeFood := food[0]
+	for _, f := range food {
+		d := calcDistance(head, f)
+		if d < dis {
+			dis = d
+			closeFood = f
+		}
+	}
+	return closeFood
+}
 func calcDistance(c1 Coord, c2 Coord) int {
-	dis := Abs((c1.X) - (c2.X))
-	dis += Abs((c1.Y) - (c2.Y))
-	return dis
+	dis := math.Sqrt(float64(square(c1.X-c2.X) + square(c1.Y-c2.Y)))
+	return int(dis)
+}
+func square(i int) int {
+	return i * i
 }
 func main() {
 	RunServer()

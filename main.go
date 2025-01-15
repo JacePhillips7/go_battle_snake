@@ -14,6 +14,8 @@ package main
 
 import (
 	"log"
+	"math"
+	"sort"
 )
 
 // info is called when you create your Battlesnake on play.battlesnake.com
@@ -24,10 +26,10 @@ func info() BattlesnakeInfoResponse {
 
 	return BattlesnakeInfoResponse{
 		APIVersion: "1",
-		Author:     "TheOtherJace", // TODO: Your Battlesnake username
-		Color:      "#0178D6",      // TODO: Choose color
-		Head:       "earmuffs",     // TODO: Choose head
-		Tail:       "pixel",        // TODO: Choose tail
+		Author:     "TheOtherJace",
+		Color:      "#0178D6",
+		Head:       "earmuffs",
+		Tail:       "pixel",
 	}
 }
 
@@ -41,39 +43,7 @@ func end(state GameState) {
 	log.Printf("GAME OVER\n\n")
 }
 
-func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bool, height int, width int, head Coord) int {
-	if danger[move] {
-		return 0
-	}
-	if move.X >= width || move.X < 0 {
-		return 0
-	}
-	if move.Y >= height || move.Y < 0 {
-		return 0
-	}
-	runningValue := layers
-
-	if layers <= 1 {
-		return runningValue
-	}
-	if reward[move] {
-		runningValue += 100 + (layers * layers)
-	}
-
-	layers--
-	up := Coord{X: move.X, Y: move.Y + 1}
-	down := Coord{X: move.X, Y: move.Y - 1}
-	left := Coord{X: move.X - 1, Y: move.Y}
-	right := Coord{X: move.X + 1, Y: move.Y}
-
-	// danger[move] = true
-
-	return runningValue + rankMove(up, layers, danger, reward, height, width, head) +
-		rankMove(down, layers, danger, reward, height, width, head) +
-		rankMove(left, layers, danger, reward, height, width, head) +
-		rankMove(right, layers, danger, reward, height, width, head)
-}
-func Abs(x int64) int64 {
+func Abs(x int) int {
 	if x < 0 {
 		return -x
 	}
@@ -193,11 +163,32 @@ func move(state GameState) BattlesnakeMoveResponse {
 		log.Printf("MOVE %s: Only 1 option to move\n", safeMoves[0])
 		return BattlesnakeMoveResponse{Move: safeMoves[0]}
 	}
-	nextMove := safeMoves[0]
 	moveValue := 0
-	layers := 10
+	moveSafeLevel := 0
+	// this is where we make a maps of all squares and rank them by what they are worth
+	rankMap := make(map[Coord]int)
+	for y := 0; y < boardHeight; y++ {
+		for x := 0; x < boardWidth; x++ {
+			boardCoord := Coord{
+				X: x, Y: y,
+			}
+			rankMap[boardCoord] = 0
+		}
+
+	}
+	// we will rank all danger spots as a 0
+	for key := range dangerSpots {
+		rankMap[key] = -1
+	}
+	//give spots value by distance from head
+	calcMapFromDistance(myHead, rankMap, 1)
+	nearFood := nearestFood(myHead, state.Board)
+	if nearFood.X != -1 && nearFood.Y != -1 {
+		calcMapFromDistance(nearFood, rankMap, 2)
+	}
+	WMoves := []WeightedMove{}
 	for _, move := range safeMoves {
-		rank := 0
+
 		var runningCord Coord
 		switch move {
 		case "down":
@@ -209,23 +200,108 @@ func move(state GameState) BattlesnakeMoveResponse {
 		case "right":
 			runningCord = rightCord
 		}
-		copyDanger := make(map[Coord]bool)
-		for key, value := range dangerSpots {
-			copyDanger[key] = value
+		//deep copy danger to track past moves
+		pastMoves := make(map[Coord]bool)
+		for key, v := range dangerSpots {
+			pastMoves[key] = v
 		}
-		rank = rankMove(runningCord, layers, copyDanger, rewardMap, boardHeight, boardWidth, myHead)
-		log.Printf("%s Scored: %d\n", move, rank)
-		if rank > moveValue {
-			nextMove = move
-			moveValue = rank
+		safeLevel := numberOfSafeMoves(runningCord, pastMoves, state.Board, boardHeight*boardWidth)
+		rank := rankMap[runningCord]
+		calculated := WeightedMove{
+			Coord: runningCord,
+			Move:  move,
+			Safe:  safeLevel,
+			Rank:  rank,
 		}
-
+		WMoves = append(WMoves, calculated)
 	}
-
-	log.Printf("MOVE %d: %s SCORE: %d\n", state.Turn, nextMove, moveValue)
+	bestMove := chooseMove(WMoves, state.You.Length)
+	nextMove := bestMove.Move
+	moveValue = bestMove.Rank
+	moveSafeLevel = bestMove.Safe
+	log.Printf("MOVE %d: %s SCORE: %d SAFE: %d\n", state.Turn, nextMove, moveValue, moveSafeLevel)
 	return BattlesnakeMoveResponse{Move: nextMove}
 }
-
+func chooseMove(moves []WeightedMove, safeWanted int) WeightedMove {
+	safeMoves := []WeightedMove{}
+	for _, v := range moves {
+		if v.Safe >= safeWanted {
+			safeMoves = append(safeMoves, v)
+		}
+	}
+	if len(safeMoves) == 0 { //out of safe moves from wanted, just choose the safest
+		sort.Slice(moves, func(i, j int) bool {
+			return moves[i].Safe > moves[j].Safe
+		})
+		return moves[0]
+	}
+	//sort by safe
+	sort.Slice(safeMoves, func(i, j int) bool {
+		return safeMoves[i].Safe > safeMoves[j].Safe
+	})
+	//now we can choose from rank
+	sort.Slice(safeMoves, func(i, j int) bool {
+		return safeMoves[i].Rank > safeMoves[j].Rank
+	})
+	return safeMoves[0]
+}
+func numberOfSafeMoves(move Coord, pastMoves map[Coord]bool, board Board, layers int) int {
+	safe := 1
+	if pastMoves[move] {
+		return 0
+	}
+	if layers == 0 {
+		return safe
+	}
+	pastMoves[move] = true
+	possibleMoves := genNextMoves(move)
+	for _, pm := range possibleMoves {
+		if pm.X < 0 || pm.Y < 0 || pm.X >= board.Width || pm.Y >= board.Height {
+			continue
+		}
+		if pastMoves[pm] {
+			continue
+		}
+		safe += numberOfSafeMoves(pm, pastMoves, board, layers-1)
+	}
+	return safe
+}
+func calcMapFromDistance(cor Coord, m map[Coord]int, weight int) {
+	for c, v := range m {
+		if v == -1 { //point is dead so we don't evaluate it
+			continue
+		}
+		dis := calcDistance(c, cor)
+		value := 10 - dis
+		if value < 0 {
+			value = 0
+		}
+		m[c] = v + value*weight
+	}
+}
+func nearestFood(head Coord, board Board) Coord {
+	food := board.Food
+	if len(food) == 0 {
+		return Coord{X: -1, Y: -1}
+	}
+	dis := board.Width + board.Height
+	closeFood := food[0]
+	for _, f := range food {
+		d := calcDistance(head, f)
+		if d < dis {
+			dis = d
+			closeFood = f
+		}
+	}
+	return closeFood
+}
+func calcDistance(c1 Coord, c2 Coord) int {
+	dis := math.Sqrt(float64(square(c1.X-c2.X) + square(c1.Y-c2.Y)))
+	return int(dis)
+}
+func square(i int) int {
+	return i * i
+}
 func main() {
 	RunServer()
 }

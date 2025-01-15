@@ -76,3 +76,10 @@ type BattlesnakeMoveResponse struct {
 	Move  string `json:"move"`
 	Shout string `json:"shout"`
 }
+
+type WeightedMove struct {
+	Coord Coord
+	Move  string
+	Safe  int
+	Rank  int
+}

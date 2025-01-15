@@ -24,10 +24,10 @@ func info() BattlesnakeInfoResponse {
 
 	return BattlesnakeInfoResponse{
 		APIVersion: "1",
-		Author:     "TheOtherJace", // TODO: Your Battlesnake username
-		Color:      "#0178D6",      // TODO: Choose color
-		Head:       "earmuffs",     // TODO: Choose head
-		Tail:       "pixel",        // TODO: Choose tail
+		Author:     "TheOtherJace",
+		Color:      "#0178D6",
+		Head:       "earmuffs",
+		Tail:       "pixel",
 	}
 }
 
@@ -41,39 +41,7 @@ func end(state GameState) {
 	log.Printf("GAME OVER\n\n")
 }
 
-func rankMove(move Coord, layers int, danger map[Coord]bool, reward map[Coord]bool, height int, width int, head Coord) int {
-	if danger[move] {
-		return 0
-	}
-	if move.X >= width || move.X < 0 {
-		return 0
-	}
-	if move.Y >= height || move.Y < 0 {
-		return 0
-	}
-	runningValue := layers
-
-	if layers <= 1 {
-		return runningValue
-	}
-	if reward[move] {
-		runningValue += 100 + (layers * layers)
-	}
-
-	layers--
-	up := Coord{X: move.X, Y: move.Y + 1}
-	down := Coord{X: move.X, Y: move.Y - 1}
-	left := Coord{X: move.X - 1, Y: move.Y}
-	right := Coord{X: move.X + 1, Y: move.Y}
-
-	// danger[move] = true
-
-	return runningValue + rankMove(up, layers, danger, reward, height, width, head) +
-		rankMove(down, layers, danger, reward, height, width, head) +
-		rankMove(left, layers, danger, reward, height, width, head) +
-		rankMove(right, layers, danger, reward, height, width, head)
-}
-func Abs(x int64) int64 {
+func Abs(x int) int {
 	if x < 0 {
 		return -x
 	}
@@ -195,7 +163,14 @@ func move(state GameState) BattlesnakeMoveResponse {
 	}
 	nextMove := safeMoves[0]
 	moveValue := 0
-	layers := 10
+	// this is where we make a maps of all squares and rank them by what they are worth
+	rankMap := make(map[Coord]int)
+	// we will rank all danger spots as a 0
+	for key := range dangerSpots {
+		rankMap[key] = -1
+	}
+	//give spots value by distance from head
+	calcMapFromDistance(myHead, &rankMap)
 	for _, move := range safeMoves {
 		rank := 0
 		var runningCord Coord
@@ -209,12 +184,8 @@ func move(state GameState) BattlesnakeMoveResponse {
 		case "right":
 			runningCord = rightCord
 		}
-		copyDanger := make(map[Coord]bool)
-		for key, value := range dangerSpots {
-			copyDanger[key] = value
-		}
-		rank = rankMove(runningCord, layers, copyDanger, rewardMap, boardHeight, boardWidth, myHead)
-		log.Printf("%s Scored: %d\n", move, rank)
+
+		rank = rankMap[runningCord]
 		if rank > moveValue {
 			nextMove = move
 			moveValue = rank
@@ -226,6 +197,24 @@ func move(state GameState) BattlesnakeMoveResponse {
 	return BattlesnakeMoveResponse{Move: nextMove}
 }
 
+func calcMapFromDistance(cor Coord, m *map[Coord]int) {
+	for c, v := range *m {
+		if v == -1 { //point is dead so we don't evaluate it
+			continue
+		}
+		dis := calcDistance(c, cor)
+		value := 10 - dis
+		if value < 0 {
+			value = 0
+		}
+		v += value
+	}
+}
+func calcDistance(c1 Coord, c2 Coord) int {
+	dis := Abs((c1.X) - (c2.X))
+	dis += Abs((c1.Y) - (c2.Y))
+	return dis
+}
 func main() {
 	RunServer()
 }

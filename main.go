@@ -100,12 +100,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 			dangerSpots[b] = true
 		}
 		dangerSpots[o.Head] = true
-		if o.Head != myHead {
-			head_cords := genNextMoves(o.Head)
-			for _, h := range head_cords {
-				dangerSpots[h] = true
-			}
-		}
 	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}
 	downCord := Coord{X: myHead.X, Y: myHead.Y - 1}

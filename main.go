@@ -1,26 +1,11 @@
 package main
 
-// Welcome to
-// __________         __    __  .__                               __
-// \______   \_____ _/  |__/  |_|  |   ____   ______ ____ _____  |  | __ ____
-//  |    |  _/\__  \\   __\   __\  | _/ __ \ /  ___//    \\__  \ |  |/ // __ \
-//  |    |   \ / __ \|  |  |  | |  |_\  ___/ \___ \|   |  \/ __ \|    <\  ___/
-//  |________/(______/__|  |__| |____/\_____>______>___|__(______/__|__\\_____>
-//
-// This file can be a nice home for your Battlesnake logic and helper functions.
-//
-// To get you started we've included code to prevent your Battlesnake from moving backwards.
-// For more info see docs.battlesnake.com
-
 import (
 	"log"
 	"math"
 	"sort"
 )
 
-// info is called when you create your Battlesnake on play.battlesnake.com
-// and controls your Battlesnake's appearance
-// TIP: If you open your Battlesnake URL in a browser you should see this data
 func info() BattlesnakeInfoResponse {
 	log.Println("INFO")
 
@@ -111,7 +96,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 	//add all enemy snakes
 	opponents := state.Board.Snakes
 	for _, o := range opponents { /*  */
-		for _, b := range o.Body {
+		for _, b := range o.Body[0 : len(o.Body)-1] { // this should mark tails as a safe spot
 			dangerSpots[b] = true
 		}
 		dangerSpots[o.Head] = true
@@ -181,10 +166,30 @@ func move(state GameState) BattlesnakeMoveResponse {
 		rankMap[key] = -1
 	}
 	//give spots value by distance from head
-	calcMapFromDistance(myHead, rankMap, 1)
+	calcMapFromDistance(myHead, rankMap, 2)
 	nearFood := nearestFood(myHead, state.Board)
 	if nearFood.X != -1 && nearFood.Y != -1 {
-		calcMapFromDistance(nearFood, rankMap, 2)
+		calcMapFromDistance(nearFood, rankMap, 1)
+	}
+	for _, f := range state.Board.Food {
+		calcMapFromDistance(f, rankMap, 1)
+	}
+	possibleOppsMoves := make(map[Coord]bool)
+	for _, o := range state.Board.Snakes {
+		if o.Head != myHead {
+			calcMapFromDistance(o.Head, rankMap, -1)
+
+			//gives extra rank if we can kill another snake, inverse is true
+			head_cords := genNextMoves(o.Head)
+			for _, h := range head_cords {
+				if len(state.You.Body) > o.Length {
+					possibleOppsMoves[h] = true
+					rankMap[h] += 100
+				} else {
+					rankMap[h] -= 100
+				}
+			}
+		}
 	}
 	WMoves := []WeightedMove{}
 	for _, move := range safeMoves {
@@ -206,6 +211,9 @@ func move(state GameState) BattlesnakeMoveResponse {
 			pastMoves[key] = v
 		}
 		safeLevel := numberOfSafeMoves(runningCord, pastMoves, state.Board, boardHeight*boardWidth)
+		if possibleOppsMoves[runningCord] {
+			safeLevel -= 100
+		}
 		rank := rankMap[runningCord]
 		calculated := WeightedMove{
 			Coord: runningCord,

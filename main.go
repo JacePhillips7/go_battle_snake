@@ -213,6 +213,8 @@ func move(state GameState) BattlesnakeMoveResponse {
 		safeLevel := numberOfSafeMoves(runningCord, pastMoves, state.Board, boardHeight*boardWidth)
 		if possibleOppsMoves[runningCord] {
 			safeLevel -= 100
+		} else {
+			safeLevel += 10
 		}
 		rank := rankMap[runningCord]
 		calculated := WeightedMove{

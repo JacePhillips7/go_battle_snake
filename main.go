@@ -223,7 +223,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 		WMoves = append(WMoves, calculated)
 	}
-	bestMove := chooseMove(WMoves, state.You.Length)
+	bestMove := chooseMove(WMoves, state.You.Length-1)
 	nextMove := bestMove.Move
 	moveValue = bestMove.Rank
 	moveSafeLevel = bestMove.Safe

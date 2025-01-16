@@ -183,9 +183,9 @@ func move(state GameState) BattlesnakeMoveResponse {
 			head_cords := genNextMoves(o.Head)
 			for _, h := range head_cords {
 				if len(state.You.Body) > o.Length {
-					possibleOppsMoves[h] = true
 					rankMap[h] += 100
 				} else {
+					possibleOppsMoves[h] = true
 					rankMap[h] -= 100
 				}
 			}

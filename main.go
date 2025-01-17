@@ -266,7 +266,7 @@ func numberOfSafeMoves(move Coord, pastMoves map[Coord]bool, state GameState, la
 	for _, t := range state.Board.Snakes {
 		tail := t.Body[len(t.Body)-1]
 		if move == tail {
-			safe += state.You.Length
+			safe += state.You.Length - 1
 		}
 	}
 	pastMoves[move] = true

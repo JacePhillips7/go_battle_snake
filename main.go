@@ -90,9 +90,11 @@ func move(state GameState) BattlesnakeMoveResponse {
 	if myHead.Y == 0 {
 		isMoveSafe["down"] = false
 	}
-
-	//prevent collision with self
-	dangerSpots := make(map[Coord]bool, 0)
+	//maps
+	dangerSpots := make(map[Coord]bool, 0)    // coords that will kill you
+	rewardMap := make(map[Coord]bool, 0)      // coords that have a reward
+	rankMap := make(map[Coord]int)            // ranked value map, value of each tile
+	possibleOppsMoves := make(map[Coord]bool) // opps next possible moves
 	//add all enemy snakes
 	opponents := state.Board.Snakes
 	for _, o := range opponents { /*  */
@@ -126,8 +128,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 		isMoveSafe["right"] = false
 	}
 
-	rewardMap := make(map[Coord]bool, 0)
-
 	//add food to rewards
 	for _, f := range state.Board.Food {
 		rewardMap[f] = true
@@ -152,8 +152,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 	}
 	moveValue := 0
 	moveSafeLevel := 0
-	// this is where we make a maps of all squares and rank them by what they are worth
-	rankMap := make(map[Coord]int)
 	for y := 0; y < boardHeight; y++ {
 		for x := 0; x < boardWidth; x++ {
 			boardCoord := Coord{
@@ -176,7 +174,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 	for _, f := range state.Board.Food {
 		calcMapFromDistance(f, rankMap, 1)
 	}
-	possibleOppsMoves := make(map[Coord]bool)
+
 	for _, o := range state.Board.Snakes {
 		if o.Head != myHead {
 			calcMapFromDistance(o.Head, rankMap, -1)

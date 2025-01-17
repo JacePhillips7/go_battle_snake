@@ -212,7 +212,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		for key, v := range dangerSpots {
 			pastMoves[key] = v
 		}
-		safeLevel := numberOfSafeMoves(runningCord, pastMoves, state.Board, boardHeight*boardWidth)
+		safeLevel := numberOfSafeMoves(runningCord, pastMoves, state, boardHeight*boardWidth)
 		if possibleOppsMoves[runningCord] {
 			safeLevel -= 100
 		}
@@ -255,7 +255,7 @@ func chooseMove(moves []WeightedMove, safeWanted int) WeightedMove {
 	})
 	return safeMoves[0]
 }
-func numberOfSafeMoves(move Coord, pastMoves map[Coord]bool, board Board, layers int) int {
+func numberOfSafeMoves(move Coord, pastMoves map[Coord]bool, state GameState, layers int) int {
 	safe := 1
 	if pastMoves[move] {
 		return 0
@@ -263,16 +263,22 @@ func numberOfSafeMoves(move Coord, pastMoves map[Coord]bool, board Board, layers
 	if layers == 0 {
 		return safe
 	}
+	for _, t := range state.Board.Snakes {
+		tail := t.Body[len(t.Body)-1]
+		if move == tail {
+			safe += state.You.Length
+		}
+	}
 	pastMoves[move] = true
 	possibleMoves := genNextMoves(move)
 	for _, pm := range possibleMoves {
-		if pm.X < 0 || pm.Y < 0 || pm.X >= board.Width || pm.Y >= board.Height {
+		if pm.X < 0 || pm.Y < 0 || pm.X >= state.Board.Width || pm.Y >= state.Board.Height {
 			continue
 		}
 		if pastMoves[pm] {
 			continue
 		}
-		safe += numberOfSafeMoves(pm, pastMoves, board, layers-1)
+		safe += numberOfSafeMoves(pm, pastMoves, state, layers-1)
 	}
 	return safe
 }

@@ -99,7 +99,15 @@ func move(state GameState) BattlesnakeMoveResponse {
 		for _, b := range o.Body[0 : len(o.Body)-1] { // this should mark tails as a safe spot
 			dangerSpots[b] = true
 		}
-		dangerSpots[o.Head] = true
+		if len(opponents) == 2 { //we are in 1v1 mode
+			if len(o.Body) > state.You.Length {
+				dangerSpots[o.Head] = true
+			}
+		} else {
+			if len(o.Body) >= state.You.Length {
+				dangerSpots[o.Head] = true
+			}
+		}
 	}
 	upCord := Coord{X: myHead.X, Y: myHead.Y + 1}
 	downCord := Coord{X: myHead.X, Y: myHead.Y - 1}
@@ -155,7 +163,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 
 	}
-	// we will rank all danger spots as a 0
+	// we will rank all danger spots as a -1
 	for key := range dangerSpots {
 		rankMap[key] = -1
 	}
